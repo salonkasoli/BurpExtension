@@ -13,7 +13,7 @@ import javax.swing.JMenuItem;
 public class BurpExtender implements IBurpExtender, IContextMenuFactory{
 
 	protected static final String HOST = "127.0.0.1";
-	protected static final String PORT = "8080";
+	protected static final int PORT = 1337;
 	private IBurpExtenderCallbacks callbacks;
 	private PrintWriter stdout;
 	private IExtensionHelpers helpers;
@@ -41,7 +41,8 @@ public class BurpExtender implements IBurpExtender, IContextMenuFactory{
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					IHttpRequestResponse[] requestArray = invocation.getSelectedMessages();
-					sendToAnotherHost(requestArray[0],HOST,PORT);
+					Runnable r = new MyThread(requestArray[0],callbacks);
+					new Thread(r).start();
 				}
 				
 			});
@@ -52,8 +53,25 @@ public class BurpExtender implements IBurpExtender, IContextMenuFactory{
 		return menuItemList;
 	}
 	
-	public void sendToAnotherHost(IHttpRequestResponse request, String host, String port){
-		stdout.println(host);
-		stdout.println(port);
+	public void sendToAnotherHost(IHttpRequestResponse request, String host,int  port){
+		callbacks.makeHttpRequest(host, port, false, request.getRequest());
+	}
+	
+	private class MyThread implements Runnable {
+
+		private IHttpRequestResponse request;
+		private IBurpExtenderCallbacks callbacks;
+		
+		MyThread(IHttpRequestResponse inputRequest, IBurpExtenderCallbacks inputCallbacks){
+			
+			request = inputRequest;
+			callbacks = inputCallbacks;
+			
+		}
+		@Override
+		public void run() {
+			callbacks.makeHttpRequest(HOST,  PORT, false, request.getRequest());			
+		}
+		
 	}
 }
